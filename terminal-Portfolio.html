@@ -1,0 +1,910 @@
+<!DOCTYPE html><html lang="en"><head><meta name="x-poe-datastore-behavior" content="local_only"><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: https://cdnjs.cloudflare.com https://cdn.jsdelivr.net https://code.jquery.com https://unpkg.com https://d3js.org https://threejs.org https://cdn.plot.ly https://stackpath.bootstrapcdn.com https://maps.googleapis.com https://cdn.tailwindcss.com https://ajax.googleapis.com https://kit.fontawesome.com https://cdn.datatables.net https://maxcdn.bootstrapcdn.com https://code.highcharts.com https://tako-static-assets-production.s3.amazonaws.com https://www.youtube.com https://fonts.googleapis.com https://fonts.gstatic.com https://pfst.cf2.poecdn.net https://puc.poecdn.net https://i.imgur.com https://wikimedia.org https://*.icons8.com https://*.giphy.com https://picsum.photos https://images.unsplash.com; frame-src 'self' https://www.youtube.com https://trytako.com; child-src 'self'; manifest-src 'self'; worker-src 'self'; upgrade-insecure-requests; block-all-mixed-content;">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terminal Portfolio</title>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&amp;display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0a0e14;
+            --bg-secondary: #1a1e24;
+            --bg-tertiary: #252a33;
+            --text-primary: #e6e6e6;
+            --text-secondary: #8a919a;
+            --accent-green: #7dd3a0;
+            --accent-blue: #73d0ff;
+            --accent-purple: #d4bfff;
+            --accent-orange: #ffad66;
+            --accent-red: #ff6b6b;
+            --accent-yellow: #ffd580;
+            --accent-cyan: #95e6cb;
+        }
+
+        body {
+            font-family: 'JetBrains Mono', monospace;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            background-image: 
+                radial-gradient(ellipse at top, rgba(115, 208, 255, 0.05) 0%, transparent 50%),
+                radial-gradient(ellipse at bottom, rgba(125, 211, 160, 0.05) 0%, transparent 50%);
+        }
+
+        .terminal-container {
+            width: 100%;
+            max-width: 900px;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            box-shadow: 
+                0 25px 50px -12px rgba(0, 0, 0, 0.5),
+                0 0 0 1px rgba(255, 255, 255, 0.05),
+                inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            overflow: hidden;
+        }
+
+        .terminal-header {
+            background: var(--bg-tertiary);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .terminal-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .terminal-btn {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+
+        .terminal-btn:hover {
+            opacity: 0.8;
+            transform: scale(1.1);
+        }
+
+        .btn-close { background: #ff5f57; }
+        .btn-minimize { background: #ffbd2e; }
+        .btn-maximize { background: #28ca41; }
+
+        .terminal-title {
+            flex: 1;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .terminal-body {
+            padding: 20px;
+            height: 500px;
+            overflow-y: auto;
+            scroll-behavior: smooth;
+        }
+
+        .terminal-body::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .terminal-body::-webkit-scrollbar-track {
+            background: var(--bg-secondary);
+        }
+
+        .terminal-body::-webkit-scrollbar-thumb {
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+        }
+
+        .terminal-body::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .output-line {
+            margin-bottom: 8px;
+            line-height: 1.6;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .prompt {
+            color: var(--accent-green);
+        }
+
+        .command {
+            color: var(--accent-blue);
+        }
+
+        .input-line {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .input-prompt {
+            color: var(--accent-green);
+            white-space: nowrap;
+        }
+
+        #command-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-primary);
+            font-family: inherit;
+            font-size: 14px;
+            outline: none;
+            caret-color: var(--accent-green);
+        }
+
+        .cursor {
+            display: inline-block;
+            width: 8px;
+            height: 18px;
+            background: var(--accent-green);
+            animation: blink 1s infinite;
+            vertical-align: middle;
+        }
+
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0; }
+        }
+
+        .ascii-art {
+            color: var(--accent-cyan);
+            white-space: pre;
+            font-size: 10px;
+            line-height: 1.2;
+            margin-bottom: 16px;
+        }
+
+        .section-title {
+            color: var(--accent-purple);
+            font-weight: 700;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .highlight-green { color: var(--accent-green); }
+        .highlight-blue { color: var(--accent-blue); }
+        .highlight-purple { color: var(--accent-purple); }
+        .highlight-orange { color: var(--accent-orange); }
+        .highlight-red { color: var(--accent-red); }
+        .highlight-yellow { color: var(--accent-yellow); }
+        .highlight-cyan { color: var(--accent-cyan); }
+        .dim { color: var(--text-secondary); }
+
+        .skill-bar {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin: 4px 0;
+        }
+
+        .skill-name {
+            width: 120px;
+            color: var(--accent-orange);
+        }
+
+        .skill-progress {
+            flex: 1;
+            height: 8px;
+            background: var(--bg-tertiary);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .skill-fill {
+            height: 100%;
+            background: linear-gradient(90deg, var(--accent-green), var(--accent-cyan));
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .project-card {
+            background: var(--bg-tertiary);
+            border-radius: 8px;
+            padding: 16px;
+            margin: 12px 0;
+            border-left: 3px solid var(--accent-blue);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .project-card:hover {
+            transform: translateX(5px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+
+        .project-title {
+            color: var(--accent-yellow);
+            font-weight: 700;
+            margin-bottom: 8px;
+        }
+
+        .project-tech {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .tech-tag {
+            background: var(--bg-secondary);
+            color: var(--accent-cyan);
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+
+        .contact-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--accent-blue);
+            margin: 4px 0;
+            transition: color 0.2s;
+        }
+
+        .contact-link:hover {
+            color: var(--accent-cyan);
+        }
+
+        .help-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .help-item {
+            display: flex;
+            gap: 12px;
+        }
+
+        .help-cmd {
+            color: var(--accent-yellow);
+            min-width: 100px;
+        }
+
+        .loading {
+            display: inline-flex;
+            gap: 4px;
+        }
+
+        .loading span {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: loading 1.4s infinite ease-in-out both;
+        }
+
+        .loading span:nth-child(1) { animation-delay: -0.32s; }
+        .loading span:nth-child(2) { animation-delay: -0.16s; }
+
+        @keyframes loading {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        .matrix-bg {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.03;
+            z-index: -1;
+        }
+
+        @media (max-width: 600px) {
+            .terminal-body {
+                height: 400px;
+                padding: 12px;
+            }
+
+            .ascii-art {
+                font-size: 6px;
+            }
+
+            .skill-name {
+                width: 80px;
+                font-size: 12px;
+            }
+
+            .help-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <canvas class="matrix-bg" id="matrix"></canvas>
+    
+    <div class="terminal-container">
+        <div class="terminal-header">
+            <div class="terminal-buttons">
+                <div class="terminal-btn btn-close"></div>
+                <div class="terminal-btn btn-minimize"></div>
+                <div class="terminal-btn btn-maximize"></div>
+            </div>
+            <div class="terminal-title">guest@portfolio ~ zsh</div>
+            <div style="width: 52px;"></div>
+        </div>
+        <div class="terminal-body" id="terminal-body">
+            <div id="output"></div>
+            <div class="input-line">
+                <span class="input-prompt">guest@portfolio:~$</span>
+                <input type="text" id="command-input" autofocus="" autocomplete="off" spellcheck="false">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const output = document.getElementById('output');
+        const input = document.getElementById('command-input');
+        const terminalBody = document.getElementById('terminal-body');
+
+        const asciiArt = `
+    ██████╗ ███████╗██╗   ██╗    ██████╗  ██████╗ ██████╗ ████████╗███████╗ ██████╗ ██╗     ██╗ ██████╗ 
+    ██╔══██╗██╔════╝██║   ██║    ██╔══██╗██╔═══██╗██╔══██╗╚══██╔══╝██╔════╝██╔═══██╗██║     ██║██╔═══██╗
+    ██║  ██║█████╗  ██║   ██║    ██████╔╝██║   ██║██████╔╝   ██║   █████╗  ██║   ██║██║     ██║██║   ██║
+    ██║  ██║██╔══╝  ╚██╗ ██╔╝    ██╔═══╝ ██║   ██║██╔══██╗   ██║   ██╔══╝  ██║   ██║██║     ██║██║   ██║
+    ██████╔╝███████╗ ╚████╔╝     ██║     ╚██████╔╝██║  ██║   ██║   ██║     ╚██████╔╝███████╗██║╚██████╔╝
+    ╚═════╝ ╚══════╝  ╚═══╝      ╚═╝      ╚═════╝ ╚═╝  ╚═╝   ╚═╝   ╚═╝      ╚═════╝ ╚══════╝╚═╝ ╚═════╝ 
+        `;
+
+        const welcomeMessage = `
+<div class="ascii-art">${asciiArt}</div>
+<div class="output-line"><span class="highlight-cyan">Welcome to my interactive terminal portfolio!</span></div>
+
+
+<div style="display: flex; gap: 24px; align-items: flex-start;">
+    <pre class="highlight-cyan" style="font-size: 10px; line-height: 1.1;">
+     .---.
+    /     \\
+    \\.@-@./
+    /\`\\_/\`\\
+   //  _  \\\\
+  | \\     )|_
+ /\`\\_\`>  <_/ \\
+ \\__/'---'\\__/
+    </pre>
+    <div>
+        <div><span class="highlight-green">guest</span>@<span class="highlight-blue">portfolio</span></div>
+        <div class="dim">─────────────────</div>
+        <div><span class="highlight-purple">OS:</span> Portfolio OS 1.0</div>
+        <div><span class="highlight-purple">Host:</span> Browser Runtime</div>
+        <div><span class="highlight-purple">Kernel:</span> JavaScript V8</div>
+        <div><span class="highlight-purple">Shell:</span> zsh 5.9</div>
+        <div><span class="highlight-purple">Theme:</span> Ayu Dark</div>
+        <div><span class="highlight-purple">Terminal:</span> Web Terminal</div>
+        <div><span class="highlight-purple">CPU:</span> Your Device</div>
+        <div><span class="highlight-purple">Memory:</span> ∞ MB</div>
+    </div>
+</div>
+
+
+<div class="output-line dim">──────────────────────────────────────────────────</div>
+<div class="output-line dim">Type <span class="highlight-yellow">'help'</span> to see available commands.</div>
+`;
+
+        const commands = {
+            help: () => `
+<div class="section-title">📋 Available Commands</div>
+<div class="help-grid">
+    <div class="help-item"><span class="help-cmd">about</span><span class="dim">Who am I?</span></div>
+    <div class="help-item"><span class="help-cmd">skills</span><span class="dim">Technical skills</span></div>
+    <div class="help-item"><span class="help-cmd">projects</span><span class="dim">My work</span></div>
+    <div class="help-item"><span class="help-cmd">experience</span><span class="dim">Work history</span></div>
+    <div class="help-item"><span class="help-cmd">education</span><span class="dim">Academic background</span></div>
+    <div class="help-item"><span class="help-cmd">contact</span><span class="dim">Get in touch</span></div>
+    <div class="help-item"><span class="help-cmd">social</span><span class="dim">Social links</span></div>
+    <div class="help-item"><span class="help-cmd">resume</span><span class="dim">Download CV</span></div>
+    <div class="help-item"><span class="help-cmd">clear</span><span class="dim">Clear terminal</span></div>
+    <div class="help-item"><span class="help-cmd">theme</span><span class="dim">Change theme</span></div>
+    <div class="help-item"><span class="help-cmd">whoami</span><span class="dim">Current user</span></div>
+    <div class="help-item"><span class="help-cmd">date</span><span class="dim">Current date</span></div>
+</div>
+            `,
+
+            about: () => `
+<div class="section-title">👨‍💻 About Me</div>
+<div class="output-line">
+    Hi! I'm <span class="highlight-green">Alex Chen</span>, a passionate <span class="highlight-blue">Full Stack Developer</span> 
+    based in San Francisco, CA.
+</div>
+<div class="output-line" style="margin-top: 12px;">
+    I specialize in building modern web applications with a focus on 
+    <span class="highlight-orange">user experience</span> and <span class="highlight-purple">clean code</span>.
+</div>
+<div class="output-line" style="margin-top: 12px;">
+    With <span class="highlight-yellow">5+ years</span> of experience, I've worked with startups and 
+    enterprise companies, delivering scalable solutions that make a difference.
+</div>
+<div class="output-line" style="margin-top: 12px;">
+    <span class="dim">When I'm not coding, you'll find me exploring hiking trails, 
+    playing guitar, or contributing to open-source projects.</span>
+</div>
+            `,
+
+            skills: () => `
+<div class="section-title">🛠️ Technical Skills</div>
+<div class="output-line highlight-cyan" style="margin-top: 12px;">Frontend Development</div>
+<div class="skill-bar">
+    <span class="skill-name">JavaScript</span>
+    <div class="skill-progress"><div class="skill-fill" style="width: 95%"></div></div>
+    <span class="dim">95%</span>
+</div>
+<div class="skill-bar">
+    <span class="skill-name">React</span>
+    <div class="skill-progress"><div class="skill-fill" style="width: 92%"></div></div>
+    <span class="dim">92%</span>
+</div>
+<div class="skill-bar">
+    <span class="skill-name">TypeScript</span>
+    <div class="skill-progress"><div class="skill-fill" style="width: 88%"></div></div>
+    <span class="dim">88%</span>
+</div>
+<div class="skill-bar">
+    <span class="skill-name">Vue.js</span>
+    <div class="skill-progress"><div class="skill-fill" style="width: 80%"></div></div>
+    <span class="dim">80%</span>
+</div>
+
+<div class="output-line highlight-cyan" style="margin-top: 16px;">Backend Development</div>
+<div class="skill-bar">
+    <span class="skill-name">Node.js</span>
+    <div class="skill-progress"><div class="skill-fill" style="width: 90%"></div></div>
+    <span class="dim">90%</span>
+</div>
+<div class="skill-bar">
+    <span class="skill-name">Python</span>
+    <div class="skill-progress"><div class="skill-fill" style="width: 85%"></div></div>
+    <span class="dim">85%</span>
+</div>
+<div class="skill-bar">
+    <span class="skill-name">PostgreSQL</span>
+    <div class="skill-progress"><div class="skill-fill" style="width: 82%"></div></div>
+    <span class="dim">82%</span>
+</div>
+<div class="skill-bar">
+    <span class="skill-name">GraphQL</span>
+    <div class="skill-progress"><div class="skill-fill" style="width: 78%"></div></div>
+    <span class="dim">78%</span>
+</div>
+
+<div class="output-line highlight-cyan" style="margin-top: 16px;">DevOps & Tools</div>
+<div class="skill-bar">
+    <span class="skill-name">Docker</span>
+    <div class="skill-progress"><div class="skill-fill" style="width: 85%"></div></div>
+    <span class="dim">85%</span>
+</div>
+<div class="skill-bar">
+    <span class="skill-name">AWS</span>
+    <div class="skill-progress"><div class="skill-fill" style="width: 80%"></div></div>
+    <span class="dim">80%</span>
+</div>
+<div class="skill-bar">
+    <span class="skill-name">Git</span>
+    <div class="skill-progress"><div class="skill-fill" style="width: 95%"></div></div>
+    <span class="dim">95%</span>
+</div>
+            `,
+
+            projects: () => `
+<div class="section-title">🚀 Featured Projects</div>
+
+<div class="project-card">
+    <div class="project-title">CloudSync Dashboard</div>
+    <div class="output-line">A real-time analytics dashboard for cloud infrastructure monitoring with 
+    interactive visualizations and automated alerting system.</div>
+    <div class="project-tech">
+        <span class="tech-tag">React</span>
+        <span class="tech-tag">D3.js</span>
+        <span class="tech-tag">Node.js</span>
+        <span class="tech-tag">WebSocket</span>
+        <span class="tech-tag">Redis</span>
+    </div>
+</div>
+
+<div class="project-card">
+    <div class="project-title">DevCollab Platform</div>
+    <div class="output-line">A collaborative code editing platform with real-time synchronization, 
+    video conferencing, and integrated CI/CD pipelines.</div>
+    <div class="project-tech">
+        <span class="tech-tag">Vue.js</span>
+        <span class="tech-tag">WebRTC</span>
+        <span class="tech-tag">Python</span>
+        <span class="tech-tag">Docker</span>
+        <span class="tech-tag">PostgreSQL</span>
+    </div>
+</div>
+
+<div class="project-card">
+    <div class="project-title">AI Content Generator</div>
+    <div class="output-line">A machine learning-powered content creation tool that generates 
+    blog posts, social media content, and marketing copy.</div>
+    <div class="project-tech">
+        <span class="tech-tag">Next.js</span>
+        <span class="tech-tag">OpenAI API</span>
+        <span class="tech-tag">TailwindCSS</span>
+        <span class="tech-tag">Prisma</span>
+    </div>
+</div>
+
+<div class="project-card">
+    <div class="project-title">E-Commerce Mobile App</div>
+    <div class="output-line">Cross-platform mobile application with AR product visualization, 
+    one-click checkout, and personalized recommendations.</div>
+    <div class="project-tech">
+        <span class="tech-tag">React Native</span>
+        <span class="tech-tag">GraphQL</span>
+        <span class="tech-tag">Stripe</span>
+        <span class="tech-tag">Firebase</span>
+    </div>
+</div>
+            `,
+
+            experience: () => `
+<div class="section-title">💼 Work Experience</div>
+
+<div class="output-line" style="margin-top: 12px;">
+    <span class="highlight-yellow">Senior Full Stack Developer</span> @ <span class="highlight-blue">TechCorp Inc.</span>
+</div>
+<div class="output-line dim">Jan 2022 - Present | San Francisco, CA</div>
+<div class="output-line">• Led development of microservices architecture serving 2M+ users</div>
+<div class="output-line">• Reduced page load time by 60% through performance optimization</div>
+<div class="output-line">• Mentored team of 5 junior developers</div>
+
+<div class="output-line" style="margin-top: 16px;">
+    <span class="highlight-yellow">Full Stack Developer</span> @ <span class="highlight-blue">StartupXYZ</span>
+</div>
+<div class="output-line dim">Mar 2020 - Dec 2021 | Remote</div>
+<div class="output-line">• Built MVP that secured $2M in seed funding</div>
+<div class="output-line">• Implemented CI/CD pipeline reducing deployment time by 80%</div>
+<div class="output-line">• Developed RESTful APIs handling 100K+ daily requests</div>
+
+<div class="output-line" style="margin-top: 16px;">
+    <span class="highlight-yellow">Frontend Developer</span> @ <span class="highlight-blue">Digital Agency Co.</span>
+</div>
+<div class="output-line dim">Jun 2019 - Feb 2020 | New York, NY</div>
+<div class="output-line">• Created responsive web applications for Fortune 500 clients</div>
+<div class="output-line">• Improved accessibility scores to 98% WCAG compliance</div>
+            `,
+
+            education: () => `
+<div class="section-title">🎓 Education</div>
+
+<div class="output-line" style="margin-top: 12px;">
+    <span class="highlight-yellow">Bachelor of Science in Computer Science</span>
+</div>
+<div class="output-line"><span class="highlight-blue">Stanford University</span></div>
+<div class="output-line dim">2015 - 2019 | GPA: 3.8/4.0</div>
+<div class="output-line">• Dean's List all semesters</div>
+<div class="output-line">• Senior thesis on distributed systems</div>
+
+<div class="output-line" style="margin-top: 16px;">
+    <span class="highlight-cyan">Certifications:</span>
+</div>
+<div class="output-line">• AWS Solutions Architect Professional</div>
+<div class="output-line">• Google Cloud Professional Developer</div>
+<div class="output-line">• MongoDB Certified Developer</div>
+            `,
+
+            contact: () => `
+<div class="section-title">📬 Contact Information</div>
+<div class="output-line" style="margin-top: 12px;">
+    <span class="contact-link">📧 <span class="highlight-blue">alex.chen@email.com</span></span>
+</div>
+<div class="output-line">
+    <span class="contact-link">📱 <span class="highlight-blue">+1 (555) 123-4567</span></span>
+</div>
+<div class="output-line">
+    <span class="contact-link">📍 <span class="highlight-blue">San Francisco, CA, USA</span></span>
+</div>
+<div class="output-line" style="margin-top: 12px; color: var(--accent-green);">
+    Feel free to reach out! I'm always open to discussing new projects and opportunities.
+</div>
+            `,
+
+            social: () => `
+<div class="section-title">🌐 Social Links</div>
+<div class="output-line" style="margin-top: 12px;">
+    <span class="contact-link">◆ GitHub: <span class="highlight-blue">github.com/alexchen</span></span>
+</div>
+<div class="output-line">
+    <span class="contact-link">◆ LinkedIn: <span class="highlight-blue">linkedin.com/in/alexchen</span></span>
+</div>
+<div class="output-line">
+    <span class="contact-link">◆ Twitter: <span class="highlight-blue">@alexchen_dev</span></span>
+</div>
+<div class="output-line">
+    <span class="contact-link">◆ Portfolio: <span class="highlight-blue">alexchen.dev</span></span>
+</div>
+<div class="output-line">
+    <span class="contact-link">◆ Dev.to: <span class="highlight-blue">dev.to/alexchen</span></span>
+</div>
+            `,
+
+            resume: () => `
+<div class="section-title">📄 Resume</div>
+<div class="output-line" style="margin-top: 12px;">
+    <span class="highlight-green">✓</span> Preparing resume for download...
+</div>
+<div class="output-line">
+    <span class="dim">In a real implementation, this would trigger a PDF download.</span>
+</div>
+<div class="output-line" style="margin-top: 8px;">
+    <span class="highlight-blue">→ Click here to download: </span><span class="highlight-yellow">alex_chen_resume.pdf</span>
+</div>
+            `,
+
+            clear: () => {
+                output.innerHTML = '';
+                return null;
+            },
+
+            whoami: () => `<div class="output-line"><span class="highlight-green">guest</span>@portfolio</div>`,
+
+            date: () => `<div class="output-line"><span class="highlight-cyan">${new Date().toString()}</span></div>`,
+
+            theme: () => `
+<div class="section-title">🎨 Theme Options</div>
+<div class="output-line dim" style="margin-top: 8px;">Theme customization coming soon!</div>
+<div class="output-line dim">Current theme: <span class="highlight-purple">Ayu Dark</span></div>
+            `,
+
+            sudo: () => `<div class="output-line"><span class="highlight-red">Nice try! 😄</span> But you don't have sudo privileges here.</div>`,
+
+            ls: () => `
+<div class="output-line">
+    <span class="highlight-blue">about/</span>  
+    <span class="highlight-blue">skills/</span>  
+    <span class="highlight-blue">projects/</span>  
+    <span class="highlight-blue">experience/</span>  
+    <span class="highlight-green">README.md</span>  
+    <span class="highlight-yellow">contact.txt</span>
+</div>
+            `,
+
+            pwd: () => `<div class="output-line"><span class="highlight-cyan">/home/guest/portfolio</span></div>`,
+
+            echo: (args) => `<div class="output-line">${args || ''}</div>`,
+
+            neofetch: () => `
+<div style="display: flex; gap: 24px; align-items: flex-start;">
+    <pre class="highlight-cyan" style="font-size: 10px; line-height: 1.1;">
+     .---.
+    /     \\
+    \\.@-@./
+    /\`\\_/\`\\
+   //  _  \\\\
+  | \\     )|_
+ /\`\\_\`>  <_/ \\
+ \\__/'---'\\__/
+    </pre>
+    <div>
+        <div><span class="highlight-green">guest</span>@<span class="highlight-blue">portfolio</span></div>
+        <div class="dim">─────────────────</div>
+        <div><span class="highlight-purple">OS:</span> Portfolio OS 1.0</div>
+        <div><span class="highlight-purple">Host:</span> Browser Runtime</div>
+        <div><span class="highlight-purple">Kernel:</span> JavaScript V8</div>
+        <div><span class="highlight-purple">Shell:</span> zsh 5.9</div>
+        <div><span class="highlight-purple">Theme:</span> Ayu Dark</div>
+        <div><span class="highlight-purple">Terminal:</span> Web Terminal</div>
+        <div><span class="highlight-purple">CPU:</span> Your Device</div>
+        <div><span class="highlight-purple">Memory:</span> ∞ MB</div>
+    </div>
+</div>
+            `,
+
+            hello: () => `<div class="output-line"><span class="highlight-green">Hello there! 👋</span> Welcome to my portfolio. Type <span class="highlight-yellow">'help'</span> to get started.</div>`,
+
+            hi: () => commands.hello(),
+
+            exit: () => `<div class="output-line"><span class="highlight-yellow">Thanks for visiting!</span> <span class="dim">(You can't really exit a website terminal 😉)</span></div>`,
+
+            cat: (args) => {
+                if (args === 'readme.md') {
+                    return `
+<div class="output-line highlight-cyan"># Alex Chen's Portfolio</div>
+<div class="output-line">Welcome to my terminal-style portfolio website!</div>
+<div class="output-line">Navigate using commands like you would in a real terminal.</div>
+<div class="output-line" style="margin-top: 8px;">## Quick Start</div>
+<div class="output-line">- Type <span class="highlight-yellow">help</span> to see all commands</div>
+<div class="output-line">- Type <span class="highlight-yellow">about</span> to learn about me</div>
+<div class="output-line">- Type <span class="highlight-yellow">projects</span> to see my work</div>
+                    `;
+                }
+                return `<div class="output-line highlight-red">cat: ${args || 'file'}: No such file or directory</div>`;
+            },
+
+            history: () => {
+                let historyHtml = '<div class="section-title">📜 Command History</div>';
+                commandHistory.slice(-10).forEach((cmd, i) => {
+                    historyHtml += `<div class="output-line"><span class="dim">${i + 1}</span>  ${cmd}</div>`;
+                });
+                return historyHtml;
+            },
+
+            banner: () => `
+<div class="ascii-art">${asciiArt}</div>
+<div class="output-line highlight-cyan">Welcome back! Type 'help' to see available commands.</div>
+            `,
+
+            weather: () => `
+<div class="section-title">🌤️ Current Weather</div>
+<div class="output-line">San Francisco, CA</div>
+<div class="output-line highlight-yellow">☀️ 68°F / 20°C - Partly Cloudy</div>
+<div class="output-line dim">Perfect coding weather!</div>
+            `,
+
+            joke: () => {
+                const jokes = [
+                    "Why do programmers prefer dark mode? Because light attracts bugs! 🐛",
+                    "A SQL query walks into a bar, walks up to two tables and asks... 'Can I join you?' 🍺",
+                    "Why do Java developers wear glasses? Because they can't C# 👓",
+                    "There are only 10 types of people: those who understand binary and those who don't.",
+                    "!false — It's funny because it's true. 😄"
+                ];
+                return `<div class="output-line highlight-yellow">${jokes[Math.floor(Math.random() * jokes.length)]}</div>`;
+            }
+        };
+
+        let commandHistory = [];
+        let historyIndex = -1;
+
+        function processCommand(cmd) {
+            const trimmedCmd = cmd.trim().toLowerCase();
+            const parts = trimmedCmd.split(' ');
+            const command = parts[0];
+            const args = parts.slice(1).join(' ');
+
+            if (trimmedCmd === '') return '';
+
+            commandHistory.push(cmd);
+            historyIndex = commandHistory.length;
+
+            if (commands[command]) {
+                if (typeof commands[command] === 'function') {
+                    return commands[command](args);
+                }
+                return commands[command];
+            }
+
+            return `<div class="output-line"><span class="highlight-red">Command not found:</span> ${command}. Type <span class="highlight-yellow">'help'</span> for available commands.</div>`;
+        }
+
+        function addOutput(html) {
+            if (html) {
+                const div = document.createElement('div');
+                div.innerHTML = html;
+                output.appendChild(div);
+            }
+            scrollToBottom();
+        }
+
+        function scrollToBottom() {
+            terminalBody.scrollTop = terminalBody.scrollHeight;
+        }
+
+        function showCommandLine(cmd) {
+            const line = document.createElement('div');
+            line.className = 'output-line';
+            line.innerHTML = `<span class="prompt">guest@portfolio:~$</span> <span class="command">${cmd}</span>`;
+            output.appendChild(line);
+        }
+
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const cmd = input.value;
+                showCommandLine(cmd);
+                const result = processCommand(cmd);
+                addOutput(result);
+                input.value = '';
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                if (historyIndex > 0) {
+                    historyIndex--;
+                    input.value = commandHistory[historyIndex];
+                }
+            } else if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                if (historyIndex < commandHistory.length - 1) {
+                    historyIndex++;
+                    input.value = commandHistory[historyIndex];
+                } else {
+                    historyIndex = commandHistory.length;
+                    input.value = '';
+                }
+            } else if (e.key === 'Tab') {
+                e.preventDefault();
+                const currentInput = input.value.toLowerCase();
+                const matches = Object.keys(commands).filter(cmd => cmd.startsWith(currentInput));
+                if (matches.length === 1) {
+                    input.value = matches[0];
+                } else if (matches.length > 1) {
+                    showCommandLine(currentInput);
+                    addOutput(`<div class="output-line dim">${matches.join('  ')}</div>`);
+                }
+            } else if (e.ctrlKey && e.key === 'l') {
+                e.preventDefault();
+                output.innerHTML = '';
+            }
+        });
+
+        // Click anywhere to focus input
+        terminalBody.addEventListener('click', () => {
+            input.focus();
+        });
+
+        // Matrix rain effect
+        const canvas = document.getElementById('matrix');
+        const ctx = canvas.getContext('2d');
+
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const chars = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789';
+        const charArray = chars.split('');
+        const fontSize = 14;
+        const columns = canvas.width / fontSize;
+        const drops = [];
+
+        for (let i = 0; i < columns; i++) {
+            drops[i] = 1;
+        }
+
+        function drawMatrix() {
+            ctx.fillStyle = 'rgba(10, 14, 20, 0.05)';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            ctx.fillStyle = '#7dd3a0';
+            ctx.font = fontSize + 'px JetBrains Mono';
+            
+            for (let i = 0; i < drops.length; i++) {
+                const text = charArray[Math.floor(Math.random() * charArray.length)];
+                ctx.fillText(text, i * fontSize, drops[i] * fontSize);
+                
+                if (drops[i] * fontSize > canvas.height && Math.random() > 0.975) {
+                    drops[i] = 0;
+                }
+                drops[i]++;
+            }
+        }
+
+        setInterval(drawMatrix, 50);
+
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // Initial welcome message
+        addOutput(welcomeMessage);
+        input.focus();
+    </script>
+
+
+</body></html>
